@@ -1,0 +1,366 @@
+### 1. 注册用户
+POST http://localhost:8080/api/auth/signup
+Content-Type: application/json
+
+{
+  "firstName": "Leanne",
+  "lastName": "Graham",
+  "username": "leanne",
+  "password": "password",
+  "email": "leanne.graham@gmail.com"
+}
+
+### 2. 登录获取JWT令牌
+# @name login
+POST http://localhost:8080/api/auth/signin
+Content-Type: application/json
+
+{
+  "usernameOrEmail": "leanne",
+  "password": "password"
+}
+
+> {%
+    client.global.set("auth_token", response.body.accessToken);
+    client.global.set("current_username", response.body.username);
+%}
+
+### 3. 检查用户名可用性
+GET http://localhost:8080/api/users/checkUsernameAvailability?username=testuser
+
+### 4. 检查邮箱可用性
+GET http://localhost:8080/api/users/checkEmailAvailability?email=test@example.com
+
+### 5. 获取当前用户信息
+GET http://localhost:8080/api/users/me
+Authorization: Bearer {{auth_token}}
+
+### 6. 通过用户名获取用户信息
+GET http://localhost:8080/api/users/{{current_username}}/profile
+Authorization: Bearer {{auth_token}}
+
+### 7. 获取用户的文章
+GET http://localhost:8080/api/users/{{current_username}}/posts
+Authorization: Bearer {{auth_token}}
+
+### 8. 获取用户的相册
+GET http://localhost:8080/api/users/{{current_username}}/albums
+Authorization: Bearer {{auth_token}}
+
+### 9. 创建用户（仅管理员）
+POST http://localhost:8080/api/users
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "firstName": "Ervin",
+  "lastName": "Howell",
+  "username": "ervin",
+  "password": "password",
+  "email": "ervin.howell@gmail.com",
+  "address": {
+    "street": "Victor Plains",
+    "suite": "Suite 879",
+    "city": "Wisokyburgh",
+    "zipcode": "90566-7771",
+    "geo": {
+      "lat": "-43.9509",
+      "lng": "-34.4618"
+    }
+  },
+  "phone": "010-692-6593 x09125",
+  "website": "http://erwinhowell.com",
+  "company": {
+    "name": "Deckow-Crist",
+    "catchPhrase": "Proactive didactic contingency",
+    "bs": "synergize scalable supply-chains"
+  }
+}
+
+### 10. 更新用户信息
+PUT http://localhost:8080/api/users/{{current_username}}
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "firstName": "Ervin",
+  "lastName": "Howell",
+  "username": "ervin",
+  "password": "updatedpassword",
+  "email": "ervin.howell@gmail.com",
+  "address": {
+    "street": "Victor Plains",
+    "suite": "Suite 879",
+    "city": "Wisokyburgh",
+    "zipcode": "90566-7771",
+    "geo": {
+      "lat": "-43.9509",
+      "lng": "-34.4618"
+    }
+  },
+  "phone": "010-692-6593 x09125",
+  "website": "http://erwinhowell.com",
+  "company": {
+    "name": "Deckow-Crist",
+    "catchPhrase": "Proactive didactic contingency",
+    "bs": "synergize scalable supply-chains"
+  }
+}
+
+### 11. 删除用户
+DELETE http://localhost:8080/api/users/{{current_username}}
+Authorization: Bearer {{auth_token}}
+
+### 12. 赋予管理员权限
+PUT http://localhost:8080/api/users/{{current_username}}/giveAdmin
+Authorization: Bearer {{auth_token}}
+
+### 13. 移除管理员权限
+PUT http://localhost:8080/api/users/{{current_username}}/TakeAdmin
+Authorization: Bearer {{auth_token}}
+
+### 14. 更新用户资料
+PUT http://localhost:8080/api/users/setOrUpdateInfo
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "street": "Douglas Extension",
+  "suite": "Suite 847",
+  "city": "McKenziehaven",
+  "zipcode": "59590-4157",
+  "companyName": "Romaguera-Jacobson",
+  "catchPhrase": "Face to face bifurcated interface",
+  "bs": "e-enable strategic applications",
+  "website": "http://ramiro.info",
+  "phone": "1-463-123-4447",
+  "lat": "-68.6102",
+  "lng": "-47.0653"
+}
+
+### ============================
+### 博客文章相关API
+### ============================
+
+### 15. 获取所有文章
+GET http://localhost:8080/api/posts
+Authorization: Bearer {{auth_token}}
+
+### 16. 获取指定ID的文章
+GET http://localhost:8080/api/posts/1
+Authorization: Bearer {{auth_token}}
+
+### 17. 创建文章
+# @name createPost
+POST http://localhost:8080/api/posts
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
+  "body": "quia et suscipit suscipit recusandae consequuntur expedita et cum reprehenderit molestiae ut ut quas totam nostrum rerum est autem sunt rem eveniet architecto"
+}
+
+> {%
+    client.global.set("post_id", response.body.id);
+%}
+
+### 18. 更新文章
+PUT http://localhost:8080/api/posts/{{post_id}}
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "title": "UPDATED TITLE",
+  "body": "UPDATED CONTENT UPDATED CONTENT UPDATED CONTENT"
+}
+
+### 19. 删除文章
+DELETE http://localhost:8080/api/posts/{{post_id}}
+Authorization: Bearer {{auth_token}}
+
+### ============================
+### 评论相关API
+### ============================
+
+### 20. 获取文章的所有评论
+GET http://localhost:8080/api/posts/{{post_id}}/comments
+Authorization: Bearer {{auth_token}}
+
+### 21. 创建评论
+# @name createComment
+POST http://localhost:8080/api/posts/{{post_id}}/comments
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "body": "laudantium enim quasi est quidem magnam voluptate ipsam eos tempora quo necessitatibus dolor quam autem quasi reiciendis et nam sapiente accusantium"
+}
+
+> {%
+    client.global.set("comment_id", response.body.id);
+%}
+
+### 22. 获取指定评论
+GET http://localhost:8080/api/posts/{{post_id}}/comments/{{comment_id}}
+Authorization: Bearer {{auth_token}}
+
+### 23. 更新评论
+PUT http://localhost:8080/api/posts/{{post_id}}/comments/{{comment_id}}
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "body": "UPDATED COMMENT UPDATED COMMENT UPDATED COMMENT"
+}
+
+### 24. 删除评论
+DELETE http://localhost:8080/api/posts/{{post_id}}/comments/{{comment_id}}
+Authorization: Bearer {{auth_token}}
+
+### ============================
+### 相册相关API
+### ============================
+
+### 25. 获取所有相册
+GET http://localhost:8080/api/albums
+Authorization: Bearer {{auth_token}}
+
+### 26. 创建相册
+# @name createAlbum
+POST http://localhost:8080/api/albums
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "title": "quidem molestiae enim"
+}
+
+> {%
+    client.global.set("album_id", response.body.id);
+%}
+
+### 27. 获取指定相册
+GET http://localhost:8080/api/albums/{{album_id}}
+Authorization: Bearer {{auth_token}}
+
+### 28. 更新相册
+PUT http://localhost:8080/api/albums/{{album_id}}
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "title": "quidem molestiae enim UPDATED"
+}
+
+### 29. 删除相册
+DELETE http://localhost:8080/api/albums/{{album_id}}
+Authorization: Bearer {{auth_token}}
+
+### 30. 获取相册的所有照片
+GET http://localhost:8080/api/albums/{{album_id}}/photos
+Authorization: Bearer {{auth_token}}
+
+### ============================
+### 照片相关API
+### ============================
+
+### 31. 获取所有照片
+GET http://localhost:8080/api/photos
+Authorization: Bearer {{auth_token}}
+
+### 32. 创建照片
+# @name createPhoto
+POST http://localhost:8080/api/photos
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "title": "accusamus beatae ad facilis cum similique qui sunt",
+  "url": "https://via.placeholder.com/600/92c952",
+  "thumbnailUrl": "https://via.placeholder.com/150/92c952",
+  "albumId": {{album_id}}
+}
+
+> {%
+    client.global.set("photo_id", response.body.id);
+%}
+
+### 33. 获取指定照片
+GET http://localhost:8080/api/photos/{{photo_id}}
+Authorization: Bearer {{auth_token}}
+
+### 34. 更新照片
+PUT http://localhost:8080/api/photos/{{photo_id}}
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "title": "accusamus beatae ad facilis ",
+  "url": "https://via.placeholder.com/600/771796",
+  "thumbnailUrl": "https://via.placeholder.com/150/771796",
+  "albumId": {{album_id}}
+}
+
+### 35. 删除照片
+DELETE http://localhost:8080/api/photos/{{photo_id}}
+Authorization: Bearer {{auth_token}}
+
+### ============================
+### 待办事项相关API
+### ============================
+
+### 36. 获取所有待办事项
+GET http://localhost:8080/api/todos
+Authorization: Bearer {{auth_token}}
+
+### 37. 创建待办事项
+# @name createTodo
+POST http://localhost:8080/api/todos
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "title": "delectus aut autem",
+  "completed": false
+}
+
+> {%
+    client.global.set("todo_id", response.body.id);
+%}
+
+### 38. 获取指定待办事项
+GET http://localhost:8080/api/todos/{{todo_id}}
+Authorization: Bearer {{auth_token}}
+
+### 39. 更新待办事项
+PUT http://localhost:8080/api/todos/{{todo_id}}
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "title": "delectus aut autem Updated",
+  "completed": true
+}
+
+### 40. 删除待办事项
+DELETE http://localhost:8080/api/todos/{{todo_id}}
+Authorization: Bearer {{auth_token}}
+
+### 41. 标记待办事项为完成
+PUT http://localhost:8080/api/todos/{{todo_id}}/complete
+Authorization: Bearer {{auth_token}}
+
+### 42. 标记待办事项为未完成
+PUT http://localhost:8080/api/todos/{{todo_id}}/unComplete
+Authorization: Bearer {{auth_token}}
+
+### ============================
+### 不需要认证的公开API（测试用）
+### ============================
+
+### 43. 测试应用是否运行
+GET http://localhost:8080/
+
+### 44. 健康检查
+GET http://localhost:8080/actuator/health

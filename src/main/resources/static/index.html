@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>博客API测试</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 15px;
+      margin: 5px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    .result {
+      background: #f5f5f5;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .error {
+      color: red;
+      background: #ffebee;
+    }
+    .success {
+      color: green;
+      background: #e8f5e8;
+    }
+  </style>
+</head>
+<body>
+<h1>博客API测试页面</h1>
+
+<div>
+  <h3>测试基本端点：</h3>
+  <button class="btn" onclick="testEndpoint('GET', '/')">首页</button>
+  <button class="btn" onclick="testEndpoint('GET', '/actuator/health')">健康检查</button>
+  <button class="btn" onclick="testEndpoint('GET', '/api/posts')">获取文章</button>
+  <button class="btn" onclick="testEndpoint('GET', '/api/albums')">获取相册</button>
+</div>
+
+<div>
+  <h3>认证测试：</h3>
+  <button class="btn" onclick="testAuthSignup()">测试注册</button>
+  <button class="btn" onclick="testAuthSignin()">测试登录</button>
+  <div id="token-display" style="display:none; margin-top:10px;">
+    <p>JWT Token: <span id="token"></span></p>
+    <button class="btn" onclick="testWithToken()">使用Token测试</button>
+  </div>
+</div>
+
+<div>
+  <h3>自定义测试：</h3>
+  <select id="method">
+    <option value="GET">GET</option>
+    <option value="POST">POST</option>
+    <option value="PUT">PUT</option>
+    <option value="DELETE">DELETE</option>
+  </select>
+  <input type="text" id="endpoint" placeholder="输入端点路径" style="width: 300px; padding: 8px;">
+  <button class="btn" onclick="customTest()">测试</button>
+</div>
+
+<div>
+  <h3>响应结果：</h3>
+  <div id="loading" style="display:none; color: blue;">正在请求...</div>
+  <div id="result" class="result"></div>
+</div>
+
+<script>
+  let currentToken = '';
+
+  async function testEndpoint(method, endpoint) {
+    showLoading();
+    try {
+      const response = await fetch(endpoint, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        data = await response.text();
+      }
+
+      displayResult({
+        endpoint: endpoint,
+        method: method,
+        status: response.status,
+        data: data
+      }, response.ok);
+    } catch (error) {
+      displayResult({
+        error: error.message
+      }, false);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  async function testAuthSignup() {
+    showLoading();
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          firstName: "Test",
+          lastName: "User",
+          username: "testuser_" + Date.now(),
+          password: "password123",
+          email: "test" + Date.now() + "@example.com"
+        })
+      });
+
+      const data = await response.json();
+      displayResult({
+        endpoint: '/api/auth/signup',
+        method: 'POST',
+        status: response.status,
+        data: data
+      }, response.ok);
+    } catch (error) {
+      displayResult({
+        error: error.message
+      }, false);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  async function testAuthSignin() {
+    showLoading();
+    try {
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          usernameOrEmail: "leanne",
+          password: "password"
+        })
+      });
+
+      const data = await response.json();
+      displayResult({
+        endpoint: '/api/auth/signin',
+        method: 'POST',
+        status: response.status,
+        data: data
+      }, response.ok);
+
+      if (data.accessToken) {
+        currentToken = data.accessToken;
+        document.getElementById('token').textContent = currentToken.substring(0, 50) + '...';
+        document.getElementById('token-display').style.display = 'block';
+      }
+    } catch (error) {
+      displayResult({
+        error: error.message
+      }, false);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  async function testWithToken() {
+    if (!currentToken) {
+      alert('请先登录获取Token');
+      return;
+    }
+
+    showLoading();
+    try {
+      const response = await fetch('/api/users/me', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + currentToken
+        }
+      });
+
+      const data = await response.json();
+      displayResult({
+        endpoint: '/api/users/me',
+        method: 'GET',
+        status: response.status,
+        data: data
+      }, response.ok);
+    } catch (error) {
+      displayResult({
+        error: error.message
+      }, false);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  async function customTest() {
+    const method = document.getElementById('method').value;
+    const endpoint = document.getElementById('endpoint').value;
+
+    if (!endpoint) {
+      alert('请输入端点路径');
+      return;
+    }
+
+    showLoading();
+    try {
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+
+      if (currentToken && endpoint !== '/api/auth/signin' && endpoint !== '/api/auth/signup') {
+        headers['Authorization'] = 'Bearer ' + currentToken;
+      }
+
+      const options = {
+        method: method,
+        headers: headers
+      };
+
+      const response = await fetch(endpoint, options);
+
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        data = await response.text();
+      }
+
+      displayResult({
+        endpoint: endpoint,
+        method: method,
+        status: response.status,
+        data: data
+      }, response.ok);
+    } catch (error) {
+      displayResult({
+        error: error.message
+      }, false);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  function displayResult(result, success) {
+    const resultDiv = document.getElementById('result');
+    resultDiv.className = success ? 'result success' : 'result error';
+    resultDiv.textContent = JSON.stringify(result, null, 2);
+  }
+
+  function showLoading() {
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('result').textContent = '';
+  }
+
+  function hideLoading() {
+    document.getElementById('loading').style.display = 'none';
+  }
+
+  // 页面加载时测试基本连接
+  window.onload = function() {
+    testEndpoint('GET', '/');
+  };
+</script>
+</body>
+</html>

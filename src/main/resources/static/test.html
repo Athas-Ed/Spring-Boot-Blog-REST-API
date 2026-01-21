@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>API测试</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .result { background: #f5f5f5; padding: 10px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+<h1>API测试页面</h1>
+
+<div>
+  <h3>JWT令牌:</h3>
+  <input type="text" id="token" style="width: 500px;" placeholder="粘贴JWT令牌（Bearer后面的部分）">
+</div>
+
+<hr>
+
+<div>
+  <h3>测试API:</h3>
+  <button onclick="testGet('/api/users/me')">测试 /api/users/me</button>
+  <button onclick="testGet('/api/posts')">测试 /api/posts</button>
+  <button onclick="testGet('/api/albums')">测试 /api/albums</button>
+</div>
+
+<hr>
+
+<div>
+  <h3>响应结果:</h3>
+  <pre id="result"></pre>
+</div>
+
+<script>
+  function testGet(endpoint) {
+    const token = document.getElementById('token').value;
+    const url = 'http://localhost:8080' + endpoint;
+
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+
+    if (token) {
+      headers['Authorization'] = 'Bearer ' + token;
+    }
+
+    fetch(url, {
+      method: 'GET',
+      headers: headers,
+      mode: 'cors'
+    })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+              }
+              return response.json();
+            })
+            .then(data => {
+              document.getElementById('result').textContent =
+                      JSON.stringify(data, null, 2);
+            })
+            .catch(error => {
+              document.getElementById('result').textContent =
+                      '错误: ' + error.message + '\n\n请检查:\n1. 应用是否运行\n2. 令牌是否正确\n3. CORS配置';
+            });
+  }
+</script>
+</body>
+</html>

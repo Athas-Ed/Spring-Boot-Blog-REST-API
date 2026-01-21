@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>博客API完整测试页面</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .status-bar {
+      background: #e8f5e8;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      border-left: 5px solid #4CAF50;
+    }
+    .section {
+      margin: 25px 0;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 10px;
+    }
+    .endpoint-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .endpoint-card {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      border: 1px solid #e0e0e0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .method {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.8em;
+      margin-right: 8px;
+    }
+    .GET { background: #61affe; color: white; }
+    .POST { background: #49cc90; color: white; }
+    .PUT { background: #fca130; color: white; }
+    .DELETE { background: #f93e3e; color: white; }
+    .endpoint-path {
+      font-family: monospace;
+      margin: 8px 0;
+      color: #333;
+    }
+    .test-btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+      width: 100%;
+    }
+    .test-btn:hover {
+      opacity: 0.9;
+    }
+    .result-area {
+      margin-top: 30px;
+    }
+    #result {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: 'Consolas', monospace;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 500px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: #007bff;
+    }
+    .token-section {
+      background: #fff3cd;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .token-section input {
+      width: 70%;
+      padding: 8px;
+      margin-right: 10px;
+      border: 1px solid #ffc107;
+      border-radius: 4px;
+    }
+    .auth-btn {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .tab {
+      overflow: hidden;
+      border-bottom: 1px solid #ccc;
+      margin-bottom: 20px;
+    }
+    .tab button {
+      background-color: inherit;
+      float: left;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 14px 16px;
+      transition: 0.3s;
+      font-size: 16px;
+    }
+    .tab button:hover {
+      background-color: #f1f1f1;
+    }
+    .tab button.active {
+      border-bottom: 3px solid #007bff;
+    }
+    .tabcontent {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>📚 Spring Boot 博客REST API 测试平台</h1>
+
+  <div class="status-bar" id="status-bar">
+    ✅ 应用状态: 运行中 | 最后检查: <span id="last-check">-</span>
+  </div>
+
+  <div class="token-section">
+    <h3>🔐 JWT 令牌管理</h3>
+    <input type="text" id="jwt-token" placeholder="粘贴JWT令牌 (从 /api/auth/signin 获取)">
+    <button class="auth-btn" onclick="setToken()">设置令牌</button>
+    <button class="auth-btn" onclick="testWithToken()">测试带令牌的请求</button>
+    <button class="auth-btn" onclick="clearToken()">清除令牌</button>
+    <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+      当前令牌状态: <span id="token-status">未设置</span>
+    </div>
+  </div>
+
+  <div class="tab">
+    <button class="tablinks active" onclick="openTab(event, 'public')">公共API</button>
+    <button class="tablinks" onclick="openTab(event, 'auth')">认证API</button>
+    <button class="tablinks" onclick="openTab(event, 'actuator')">系统监控</button>
+    <button class="tablinks" onclick="openTab(event, 'custom')">自定义测试</button>
+  </div>
+
+  <!-- 公共API选项卡 -->
+  <div id="public" class="tabcontent" style="display: block;">
+    <div class="section">
+      <h3>📝 博客文章</h3>
+      <div class="endpoint-list">
+        <div class="endpoint-card">
+          <span class="method GET">GET</span>
+          <div class="endpoint-path">/api/posts</div>
+          <p>获取所有博客文章</p>
+          <button class="test-btn" onclick="testEndpoint('GET', '/api/posts')">测试</button>
+        </div>
+        <div class="endpoint-card">
+          <span class="method POST">POST</span>
+          <div class="endpoint-path">/api/posts</div>
+          <p>创建新文章 (需要认证)</p>
+          <button class="test-btn" onclick="testAuthEndpoint('POST', '/api/posts', createPostData)">测试</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>🗂️ 相册管理</h3>
+      <div class="endpoint-list">
+        <div class="endpoint-card">
+          <span class="method GET">GET</span>
+          <div class="endpoint-path">/api/albums</div>
+          <p>获取所有相册</p>
+          <button class="test-btn" onclick="testEndpoint('GET', '/api/albums')">测试</button>
+        </div>
+        <div class="endpoint-card">
+          <span class="method GET">GET</span>
+          <div class="endpoint-path">/api/photos</div>
+          <p>获取所有照片</p>
+          <button class="test-btn" onclick="testEndpoint('GET', '/api/photos')">测试</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 认证API选项卡 -->
+  <div id="auth" class="tabcontent">
+    <div class="section">
+      <h3>👤 用户认证</h3>
+      <div class="endpoint-list">
+        <div class="endpoint-card">
+          <span class="method POST">POST</span>
+          <div class="endpoint-path">/api/auth/signup</div>
+          <p>用户注册</p>
+          <button class="test-btn" onclick="testAuthSignup()">测试注册</button>
+        </div>
+        <div class="endpoint-card">
+          <span class="method POST">POST</span>
+          <div class="endpoint-path">/api/auth/signin</div>
+          <p>用户登录</p>
+          <button class="test-btn" onclick="testAuthSignin()">测试登录</button>
+        </div>
+        <div class="endpoint-card">
+          <span class="method GET">GET</span>
+          <div class="endpoint-path">/api/users/me</div>
+          <p>获取当前用户信息 (需要认证)</p>
+          <button class="test-btn" onclick="testAuthEndpoint('GET', '/api/users/me')">测试</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 系统监控选项卡 -->
+  <div id="actuator" class="tabcontent">
+    <div class="section">
+      <h3>⚙️ 系统监控端点</h3>
+      <div class="endpoint-list">
+        <div class="endpoint-card">
+          <span class="method GET">GET</span>
+          <div class="endpoint-path">/actuator</div>
+          <p>查看所有Actuator端点</p>
+          <button class="test-btn" onclick="testEndpoint('GET', '/actuator')">测试</button>
+        </div>
+        <div class="endpoint-card">
+          <span class="method GET">GET</span>
+          <div class="endpoint-path">/actuator/health</div>
+          <p>系统健康检查</p>
+          <button class="test-btn" onclick="testEndpoint('GET', '/actuator/health')">测试</button>
+        </div>
+        <div class="endpoint-card">
+          <span class="method GET">GET</span>
+          <div class="endpoint-path">/actuator/info</div>
+          <p>应用信息</p>
+          <button class="test-btn" onclick="testEndpoint('GET', '/actuator/info')">测试</button>
+        </div>
+        <div class="endpoint-card">
+          <span class="method GET">GET</span>
+          <div class="endpoint-path">/actuator/metrics</div>
+          <p>系统指标</p>
+          <button class="test-btn" onclick="testEndpoint('GET', '/actuator/metrics')">测试</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 自定义测试选项卡 -->
+  <div id="custom" class="tabcontent">
+    <div class="section">
+      <h3>🔧 自定义API测试</h3>
+      <div>
+        <label>请求方法:</label>
+        <select id="custom-method">
+          <option value="GET">GET</option>
+          <option value="POST">POST</option>
+          <option value="PUT">PUT</option>
+          <option value="DELETE">DELETE</option>
+        </select>
+
+        <label style="margin-left: 20px;">API端点:</label>
+        <input type="text" id="custom-endpoint" placeholder="/api/posts" style="width: 300px; padding: 8px;">
+
+        <button class="test-btn" onclick="customTest()" style="width: auto; margin-left: 10px;">发送请求</button>
+      </div>
+
+      <div style="margin-top: 15px;">
+        <label>请求体 (JSON):</label><br>
+        <textarea id="custom-body" rows="6" style="width: 100%; font-family: monospace; padding: 10px;"
+                  placeholder='{"key": "value"}'></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-area">
+    <h3>📊 测试结果</h3>
+    <div class="loading" id="loading">
+      <div>正在发送请求，请稍候...</div>
+    </div>
+    <div id="result"></div>
+  </div>
+</div>
+
+<script>
+  // 全局变量
+  let jwtToken = '';
+  let lastCheckTime = new Date();
+
+  // 初始化
+  document.addEventListener('DOMContentLoaded', function() {
+    updateStatusBar();
+    loadTokenFromStorage();
+  });
+
+  // 标签页切换
+  function openTab(evt, tabName) {
+    const tabcontents = document.getElementsByClassName("tabcontent");
+    for (let i = 0; i < tabcontents.length; i++) {
+      tabcontents[i].style.display = "none";
+    }
+
+    const tablinks = document.getElementsByClassName("tablinks");
+    for (let i = 0; i < tablinks.length; i++) {
+      tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+  }
+
+  // 更新状态栏
+  function updateStatusBar() {
+    const now = new Date();
+    document.getElementById('last-check').textContent = now.toLocaleTimeString();
+    lastCheckTime = now;
+  }
+
+  // 令牌管理
+  function setToken() {
+    jwtToken = document.getElementById('jwt-token').value.trim();
+    if (jwtToken) {
+      localStorage.setItem('blogapi_jwt_token', jwtToken);
+      document.getElementById('token-status').textContent = '已设置';
+      document.getElementById('token-status').style.color = '#28a745';
+      showMessage('令牌已设置并保存到本地存储', 'success');
+    } else {
+      showMessage('请输入有效的JWT令牌', 'error');
+    }
+  }
+
+  function loadTokenFromStorage() {
+    const savedToken = localStorage.getItem('blogapi_jwt_token');
+    if (savedToken) {
+      jwtToken = savedToken;
+      document.getElementById('jwt-token').value = savedToken;
+      document.getElementById('token-status').textContent = '已从存储加载';
+      document.getElementById('token-status').style.color = '#28a745';
+    }
+  }
+
+  function clearToken() {
+    jwtToken = '';
+    localStorage.removeItem('blogapi_jwt_token');
+    document.getElementById('jwt-token').value = '';
+    document.getElementById('token-status').textContent = '未设置';
+    document.getElementById('token-status').style.color = '#666';
+    showMessage('令牌已清除', 'info');
+  }
+
+  // 测试端点（公共）
+  async function testEndpoint(method, endpoint, body = null) {
+    showLoading();
+    updateStatusBar();
+
+    try {
+      const options = {
+        method: method,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      };
+
+      if (body) {
+        options.body = JSON.stringify(body);
+      }
+
+      const response = await fetch(endpoint, options);
+      const result = await parseResponse(response);
+
+      displayResult({
+        endpoint,
+        method,
+        status: response.status,
+        ...result
+      });
+
+    } catch (error) {
+      displayResult({
+        error: error.message,
+        endpoint,
+        method
+      }, true);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  // 测试需要认证的端点
+  async function testAuthEndpoint(method, endpoint, body = null) {
+    if (!jwtToken) {
+      showMessage('请先设置JWT令牌', 'error');
+      return;
+    }
+
+    showLoading();
+    updateStatusBar();
+
+    try {
+      const options = {
+        method: method,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwtToken}`
+        }
+      };
+
+      if (body) {
+        options.body = JSON.stringify(body);
+      }
+
+      const response = await fetch(endpoint, options);
+      const result = await parseResponse(response);
+
+      displayResult({
+        endpoint,
+        method,
+        status: response.status,
+        ...result
+      });
+
+    } catch (error) {
+      displayResult({
+        error: error.message,
+        endpoint,
+        method
+      }, true);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  // 测试用户注册
+  async function testAuthSignup() {
+    const userData = {
+      firstName: "Test",
+      lastName: "User",
+      username: `testuser_${Date.now()}`,
+      password: "password123",
+      email: `test_${Date.now()}@example.com`
+    };
+
+    await testEndpoint('POST', '/api/auth/signup', userData);
+  }
+
+  // 测试用户登录
+  async function testAuthSignin() {
+    const loginData = {
+      usernameOrEmail: "leanne",
+      password: "password"
+    };
+
+    showLoading();
+
+    try {
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(loginData)
+      });
+
+      const result = await parseResponse(response);
+
+      if (result.data && result.data.accessToken) {
+        jwtToken = result.data.accessToken;
+        document.getElementById('jwt-token').value = jwtToken;
+        localStorage.setItem('blogapi_jwt_token', jwtToken);
+        document.getElementById('token-status').textContent = '已从登录获取';
+        document.getElementById('token-status').style.color = '#28a745';
+        showMessage('登录成功！令牌已自动保存', 'success');
+      }
+
+      displayResult({
+        endpoint: '/api/auth/signin',
+        method: 'POST',
+        status: response.status,
+        ...result
+      });
+
+    } catch (error) {
+      displayResult({
+        error: error.message,
+        endpoint: '/api/auth/signin',
+        method: 'POST'
+      }, true);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  // 使用令牌测试
+  async function testWithToken() {
+    if (!jwtToken) {
+      showMessage('请先设置JWT令牌', 'error');
+      return;
+    }
+
+    // 测试获取当前用户信息
+    await testAuthEndpoint('GET', '/api/users/me');
+  }
+
+  // 自定义测试
+  async function customTest() {
+    const method = document.getElementById('custom-method').value;
+    const endpoint = document.getElementById('custom-endpoint').value.trim();
+    const bodyText = document.getElementById('custom-body').value.trim();
+
+    if (!endpoint) {
+      showMessage('请输入API端点', 'error');
+      return;
+    }
+
+    let body = null;
+    if (bodyText) {
+      try {
+        body = JSON.parse(bodyText);
+      } catch (e) {
+        showMessage('请求体不是有效的JSON格式', 'error');
+        return;
+      }
+    }
+
+    // 判断是否需要认证
+    const isAuthRequired = !endpoint.includes('/auth/') &&
+            !endpoint.startsWith('/actuator') &&
+            !endpoint.startsWith('/api/posts') &&
+            !endpoint.startsWith('/api/albums') &&
+            !endpoint.startsWith('/api/photos');
+
+    if (isAuthRequired && jwtToken) {
+      await testAuthEndpoint(method, endpoint, body);
+    } else if (isAuthRequired && !jwtToken) {
+      showMessage('此端点需要认证，但未设置JWT令牌', 'error');
+    } else {
+      await testEndpoint(method, endpoint, body);
+    }
+  }
+
+  // 解析响应
+  async function parseResponse(response) {
+    const contentType = response.headers.get('content-type');
+
+    if (contentType && contentType.includes('application/json')) {
+      return {
+        contentType: 'application/json',
+        data: await response.json()
+      };
+    } else {
+      const text = await response.text();
+      return {
+        contentType: contentType || 'text/plain',
+        data: text
+      };
+    }
+  }
+
+  // 显示结果
+  function displayResult(result, isError = false) {
+    const resultDiv = document.getElementById('result');
+    let output = '';
+
+    if (isError) {
+      output += '❌ 请求失败\n\n';
+      output += `错误: ${result.error}\n`;
+      if (result.endpoint) {
+        output += `端点: ${result.endpoint}\n`;
+      }
+      if (result.method) {
+        output += `方法: ${result.method}\n`;
+      }
+    } else {
+      output += `✅ 请求成功 (状态码: ${result.status})\n\n`;
+      output += `端点: ${result.method} ${result.endpoint}\n`;
+      output += `响应类型: ${result.contentType}\n\n`;
+
+      if (typeof result.data === 'string') {
+        output += `响应内容:\n${result.data.substring(0, 1000)}`;
+        if (result.data.length > 1000) {
+          output += '\n... (内容已截断)';
+        }
+      } else {
+        output += `响应数据:\n${JSON.stringify(result.data, null, 2)}`;
+      }
+    }
+
+    resultDiv.textContent = output;
+    resultDiv.style.background = isError ? '#f8d7da' : '#d1ecf1';
+    resultDiv.style.color = isError ? '#721c24' : '#0c5460';
+  }
+
+  // 辅助函数
+  function showLoading() {
+    document.getElementById('loading').style.display = 'block';
+  }
+
+  function hideLoading() {
+    document.getElementById('loading').style.display = 'none';
+  }
+
+  function showMessage(message, type = 'info') {
+    const colors = {
+      success: '#d4edda',
+      error: '#f8d7da',
+      info: '#d1ecf1',
+      warning: '#fff3cd'
+    };
+
+    const messageDiv = document.createElement('div');
+    messageDiv.textContent = message;
+    messageDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px;
+                border-radius: 5px;
+                background: ${colors[type]};
+                color: ${type === 'error' ? '#721c24' : '#155724'};
+                z-index: 1000;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            `;
+
+    document.body.appendChild(messageDiv);
+
+    setTimeout(() => {
+      messageDiv.remove();
+    }, 3000);
+  }
+
+  // 示例数据
+  const createPostData = {
+    "title": "测试文章标题",
+    "body": "这是测试文章的内容..."
+  };
+
+  // 初始测试
+  setTimeout(() => {
+    testEndpoint('GET', '/');
+    testEndpoint('GET', '/actuator');
+  }, 1000);
+</script>
+</body>
+</html>
